@@ -1,26 +1,174 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Plataforma em modo claro. Herda as cores principais da landing:
+ * roxo (#7C3AED) para acções e o roxo-noite (#1A1625) para texto.
+ *
+ * As variáveis do shadcn/ui (--primary, --muted, --border...) estão ligadas à
+ * paleta abaixo, por isso os componentes do shadcn e as nossas classes
+ * (text-ink, bg-canvas, border-line...) usam as mesmas cores.
+ */
+/* O modo escuro é uma classe `.dark` no <html> (ver components/platform/alternar-tema.tsx). */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
+  --color-ink: var(--ink);                       /* texto principal (o "midnight" da landing) */
+  --color-canvas: var(--canvas);                 /* fundo da página */
+  --color-line: var(--line);                     /* contornos */
+  --color-primary-strong: var(--primary-strong);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
+  --ink: #1a1625;
+  --canvas: #f4f2fa;
+  --line: #d9d4e8;
+  --surface: #ffffff;
+  --primary-strong: #6d28d9;
+  --danger: #c62828;
+  --background: #f4f2fa;
+  --foreground: #1a1625;
+  --card: #ffffff;
+  --card-foreground: #1a1625;
+  --popover: #ffffff;
+  --popover-foreground: #1a1625;
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --secondary: #ffffff;
+  --secondary-foreground: #6d28d9;
+  --muted: #f4f2fa;
+  --muted-foreground: #5b5470;
+  --accent: #efe9fd;
+  --accent-foreground: #1a1625;
+  --destructive: #c62828;
+  --border: #d9d4e8;
+  --input: #d9d4e8;
+  --ring: #7c3aed;
+  /* Mesma escala de cantos que tínhamos (lg 8px, xl 11px, 2xl 14px) */
+  --radius: 0.5rem;
+}
+
+.dark {
+  color-scheme: dark;
+  --ink: #ece9f5;
+  --canvas: #14111c;
+  --line: #342e48;
+  --surface: #1d1928;
+  --primary-strong: #a78bfa;
+  --danger: #f87171;
+  --background: #14111c;
+  --foreground: #ece9f5;
+  --card: #1d1928;
+  --card-foreground: #ece9f5;
+  --popover: #1d1928;
+  --popover-foreground: #ece9f5;
+  --secondary: #1d1928;
+  --secondary-foreground: #c4b5fd;
+  --muted: #241f31;
+  --muted-foreground: #a39bb8;
+  --accent: #2a2340;
+  --accent-foreground: #ece9f5;
+  --destructive: #f87171;
+  --border: #342e48;
+  --input: #342e48;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
+
+
+/*
+ * Modo escuro: as superfícies brancas e as etiquetas coloridas (fundo claro, texto escuro)
+ * passam a fundos translúcidos com texto claro. `data-fixo` mantém o fundo branco (logótipos).
+ */
+.dark .bg-white:not([data-fixo]) { background-color: var(--surface); }
+.dark .bg-white\/90 { background-color: color-mix(in srgb, var(--surface) 90%, transparent); }
+.dark .bg-amber-50, .dark .bg-amber-100 { background-color: color-mix(in srgb, #f59e0b 16%, transparent); }
+.dark .text-amber-700, .dark .text-amber-800, .dark .text-amber-900, .dark .text-amber-950 { color: #fcd34d; }
+.dark .border-amber-200 { border-color: color-mix(in srgb, #f59e0b 35%, transparent); }
+.dark .bg-blue-50, .dark .bg-blue-100 { background-color: color-mix(in srgb, #3b82f6 16%, transparent); }
+.dark .text-blue-700, .dark .text-blue-800, .dark .text-blue-900, .dark .text-blue-950 { color: #93c5fd; }
+.dark .border-blue-200 { border-color: color-mix(in srgb, #3b82f6 35%, transparent); }
+.dark .bg-violet-50, .dark .bg-violet-100 { background-color: color-mix(in srgb, #8b5cf6 16%, transparent); }
+.dark .text-violet-700, .dark .text-violet-800, .dark .text-violet-900, .dark .text-violet-950 { color: #c4b5fd; }
+.dark .border-violet-200 { border-color: color-mix(in srgb, #8b5cf6 35%, transparent); }
+.dark .bg-green-50, .dark .bg-green-100 { background-color: color-mix(in srgb, #22c55e 16%, transparent); }
+.dark .text-green-700, .dark .text-green-800, .dark .text-green-900, .dark .text-green-950 { color: #86efac; }
+.dark .border-green-200 { border-color: color-mix(in srgb, #22c55e 35%, transparent); }
+.dark .bg-rose-50, .dark .bg-rose-100 { background-color: color-mix(in srgb, #f43f5e 16%, transparent); }
+.dark .text-rose-700, .dark .text-rose-800, .dark .text-rose-900, .dark .text-rose-950 { color: #fda4af; }
+.dark .border-rose-200 { border-color: color-mix(in srgb, #f43f5e 35%, transparent); }
+.dark .bg-slate-50, .dark .bg-slate-100 { background-color: color-mix(in srgb, #94a3b8 16%, transparent); }
+.dark .text-slate-700, .dark .text-slate-800, .dark .text-slate-900, .dark .text-slate-950 { color: #cbd5e1; }
+.dark .border-slate-200 { border-color: color-mix(in srgb, #94a3b8 35%, transparent); }
+.dark .bg-sky-50, .dark .bg-sky-100 { background-color: color-mix(in srgb, #0ea5e9 16%, transparent); }
+.dark .text-sky-700, .dark .text-sky-800, .dark .text-sky-900, .dark .text-sky-950 { color: #7dd3fc; }
+.dark .border-sky-200 { border-color: color-mix(in srgb, #0ea5e9 35%, transparent); }
+.dark .bg-red-50, .dark .bg-red-100 { background-color: color-mix(in srgb, #ef4444 16%, transparent); }
+.dark .text-red-700, .dark .text-red-800, .dark .text-red-900, .dark .text-red-950 { color: #fca5a5; }
+.dark .border-red-200 { border-color: color-mix(in srgb, #ef4444 35%, transparent); }
+.dark .bg-orange-50, .dark .bg-orange-100 { background-color: color-mix(in srgb, #f97316 16%, transparent); }
+.dark .text-orange-700, .dark .text-orange-800, .dark .text-orange-900, .dark .text-orange-950 { color: #fdba74; }
+.dark .border-orange-200 { border-color: color-mix(in srgb, #f97316 35%, transparent); }
+.dark .bg-yellow-50, .dark .bg-yellow-100 { background-color: color-mix(in srgb, #eab308 16%, transparent); }
+.dark .text-yellow-700, .dark .text-yellow-800, .dark .text-yellow-900, .dark .text-yellow-950 { color: #fde047; }
+.dark .border-yellow-200 { border-color: color-mix(in srgb, #eab308 35%, transparent); }
+
+/* Foco visível para navegação por teclado */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
