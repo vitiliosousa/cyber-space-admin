@@ -2,11 +2,11 @@
 
 export const equipaAtual = { nome: "Ana Macamo", funcao: "Super-administradora", email: "ana.macamo@cyberspace.co.mz" };
 
-/** "Hoje" no protótipo, para calcular há quanto tempo aconteceu cada coisa. */
-export const HOJE = "2026-11-17";
+/** Hoje, em ISO (AAAA-MM-DD). Lê-se na hora, por isso só se usa em ecrãs que já esperam pela sessão. */
+export const hoje = () => new Date().toISOString().slice(0, 10);
 
-export function diasDesde(data: string, hoje = HOJE) {
-  return Math.round((new Date(`${hoje}T12:00:00Z`).getTime() - new Date(`${data}T12:00:00Z`).getTime()) / 86_400_000);
+export function diasDesde(data: string, referencia = hoje()) {
+  return Math.round((new Date(`${referencia}T12:00:00Z`).getTime() - new Date(`${data}T12:00:00Z`).getTime()) / 86_400_000);
 }
 
 export function haDias(data: string) {
@@ -26,10 +26,12 @@ export const estadosOrganizacao: Record<EstadoOrganizacao, { label: string; esti
   suspensa: { label: "Suspensa", estilo: "bg-slate-100 text-slate-700" },
 };
 
-export type PassoVerificacao = { chave: "dados" | "documento" | "dominios" | "representante" | "prova-adicional"; rotulo: string; texto: string; feito: boolean };
+export type PassoVerificacao = { chave: "dados" | "dominios" | "representante" | "prova-adicional"; rotulo: string; texto: string; feito: boolean };
 
 export type Organizacao = {
   id: string;
+  /** Muda quando o logótipo muda; nulo se a organização não tem. */
+  logoVersao?: number | null;
   nome: string;
   setor: string;
   estado: EstadoOrganizacao;
@@ -49,12 +51,11 @@ export type Organizacao = {
 
 function passos(feitos: number, risco: "normal" | "alto" = "normal"): PassoVerificacao[] {
   const base: Omit<PassoVerificacao, "feito">[] = [
-    { chave: "dados", rotulo: "Dados da organização", texto: "Nome, sector e site coincidem com o registo." },
-    { chave: "documento", rotulo: "Documento de registo", texto: "Alvará ou certidão comercial, com o NUIT." },
+    { chave: "dados", rotulo: "Dados da organização", texto: "Nome, sector e site coincidem com a organização." },
     { chave: "dominios", rotulo: "Domínios", texto: "Prova de que controla os domínios dos ativos." },
     { chave: "representante", rotulo: "Representante autorizado", texto: "Pode autorizar testes de segurança em nome da organização." },
   ];
-  if (risco === "alto") base.push({ chave: "prova-adicional", rotulo: "Prova adicional", texto: "Carta da administração a autorizar o programa e a confirmar quem responde a incidentes." });
+  if (risco === "alto") base.push({ chave: "prova-adicional", rotulo: "Prova adicional", texto: "Declaração, feita na plataforma, de que a administração autoriza os programas e indica quem responde a incidentes." });
   return base.map((p, i) => ({ ...p, feito: i < feitos }));
 }
 
@@ -69,9 +70,9 @@ export const organizacoes: Organizacao[] = [
   { id: "mcel", nome: "mcel", setor: "Telecomunicações", estado: "suspensa", registadaEm: "2025-07-15", risco: "normal", nuit: "400890123", website: "mcel.co.mz", contacto: "seguranca@mcel.co.mz", representante: { nome: "Vasco Bila", cargo: "Diretor de tecnologia" }, programas: 1, passos: passos(4), nota: "Suspensa por recompensas por pagar há mais de 60 dias." },
 ];
 
-/** Logótipo da organização (ficheiro em /public). */
-export function logoDe(organizacaoId: string) {
-  return `/${organizacaoId === "coca-cola" ? "cocacola" : organizacaoId}.svg`;
+/** O endereço do logótipo da organização, ou vazio se não tem (e se mostram as iniciais). A versão muda com o logótipo. */
+export function logoDe(organizacaoId: string, versao?: number | null) {
+  return versao ? `/logos/${organizacaoId}/${versao}` : "";
 }
 
 export function getOrganizacao(id: string) {
@@ -91,12 +92,11 @@ export const estadosPrograma: Record<EstadoPrograma, { label: string; estilo: st
   arquivado: { label: "Arquivado", estilo: "bg-slate-100 text-slate-600" },
 };
 
-export type AtivoPrograma = { nome: string; identificador: string; tipo: string; dominioValidado: boolean };
+export type AtivoPrograma = { id?: string; nome: string; identificador: string; tipo: string; dominioValidado: boolean };
 
 /** controlado: novo, só por convite, a caminho de público; privado: privado de propósito; publico: aberto. */
 export type FasePrograma = "controlado" | "privado" | "publico";
 
-export const CRITERIOS_LANCAMENTO = { relatoriosTratados: 3, pesquisadores: 10, respostaDias: 3 };
 
 export type Divulgacao = "coordenada" | "apos-correcao" | "nao";
 
@@ -109,6 +109,8 @@ export const politicasDivulgacao: Record<Divulgacao, { label: string; texto: str
 export type Desempenho = { eficiencia: number; primeiraResposta: string; ateResolucao: string };
 
 export type Programa = {
+  /** Muda quando o logótipo da organização muda; nulo se não tem. */
+  logoVersao?: number | null;
   /** Uma frase sobre o programa, como aparece aos pesquisadores. */
   resumo?: string;
   /** O que a empresa mais quer encontrar. */
@@ -119,8 +121,6 @@ export type Programa = {
   /** O que o pesquisador pode fazer depois de reportar. */
   divulgacao?: Divulgacao;
   fase?: FasePrograma;
-  /** Quando a empresa pediu a passagem a público. */
-  pedidoPublicacaoEm?: string;
   /** Relatórios já aceites, recusados ou duplicados. Por omissão, todos os recebidos. */
   tratados?: number;
   /** Média de dias até à primeira resposta. */
@@ -143,16 +143,18 @@ export type Programa = {
   declaracaoAutoridade: boolean;
   /** Frases de alerta que a equipa deve ver antes de aprovar. */
   alertas?: string[];
+  /** Nome da organização, nos programas que vêm da API. */
+  organizacaoNome?: string;
 };
 
 const programasBase: Programa[] = [
   { id: "portal", nome: "Portal de clientes e aplicações móveis", organizacaoId: "vodacom", estado: "ativo", tipo: "publico", criadoEm: "2025-03-12", ativos: [{ nome: "Portal de clientes", identificador: "conta.vodacom.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "API de clientes", identificador: "api.vodacom.co.mz/v2", tipo: "API", dominioValidado: true }, { nome: "Aplicação Android", identificador: "mz.co.vodacom.myvodacom", tipo: "Android", dominioValidado: true }], recompensa: { min: 2000, max: 150000 }, orcamento: 700000, pago: 520000, relatorios: 23, pesquisadores: 11, declaracaoAutoridade: true },
   { id: "pagamentos-moveis", nome: "Pagamentos móveis", organizacaoId: "vodacom", estado: "ativo", tipo: "privado", criadoEm: "2026-02-08", ativos: [{ nome: "API de pagamentos", identificador: "pagamentos.vodacom.co.mz/api", tipo: "API", dominioValidado: true }], recompensa: { min: 4000, max: 300000 }, orcamento: 900000, pago: 412000, relatorios: 9, pesquisadores: 5, declaracaoAutoridade: true },
-  { id: "cloud", nome: "Vodacom Cloud", organizacaoId: "vodacom", estado: "ativo", tipo: "privado", fase: "controlado", criadoEm: "2026-10-18", ativos: [{ nome: "Consola Cloud", identificador: "cloud.vodacom.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "API Cloud", identificador: "api.cloud.vodacom.co.mz", tipo: "API", dominioValidado: true }], recompensa: { min: 3000, max: 200000 }, orcamento: 250000, pago: 66000, relatorios: 5, tratados: 4, respostaDias: 2, pesquisadores: 7, declaracaoAutoridade: true },
+  { id: "cloud", nome: "Vodacom Cloud", organizacaoId: "vodacom", estado: "ativo", tipo: "privado", criadoEm: "2026-10-18", ativos: [{ nome: "Consola Cloud", identificador: "cloud.vodacom.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "API Cloud", identificador: "api.cloud.vodacom.co.mz", tipo: "API", dominioValidado: true }], recompensa: { min: 3000, max: 200000 }, orcamento: 250000, pago: 66000, relatorios: 5, tratados: 4, respostaDias: 2, pesquisadores: 7, declaracaoAutoridade: true },
   { id: "business", nome: "Vodacom Business", organizacaoId: "vodacom", estado: "pendente", tipo: "publico", submetidoEm: "2026-11-11", criadoEm: "2026-11-02", ativos: [{ nome: "Portal Business", identificador: "business.vodacom.co.mz", tipo: "Aplicação web", dominioValidado: true }], recompensa: { min: 2000, max: 150000 }, orcamento: 300000, pago: 0, relatorios: 0, pesquisadores: 0, declaracaoAutoridade: true },
   { id: "zap-conta", nome: "Conta de subscritor e aplicação de televisão", organizacaoId: "zap", estado: "pendente", tipo: "publico", submetidoEm: "2026-11-13", criadoEm: "2026-11-05", ativos: [{ nome: "Conta de subscritor", identificador: "conta.zap.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "Domínios da ZAP", identificador: "*.zap.co.mz", tipo: "Domínio com wildcard", dominioValidado: false }, { nome: "Aplicação de televisão", identificador: "mz.co.zap.tv", tipo: "Android", dominioValidado: true }], recompensa: { min: 1500, max: 120000 }, orcamento: 400000, pago: 0, relatorios: 0, pesquisadores: 0, declaracaoAutoridade: true, alertas: ["O domínio *.zap.co.mz ainda não foi validado.", "A organização ainda está em análise."] },
   { id: "cdm-distribuidores", nome: "Portal de distribuidores", organizacaoId: "cdm", estado: "pendente", tipo: "privado", submetidoEm: "2026-11-15", criadoEm: "2026-11-09", ativos: [{ nome: "Portal de distribuidores", identificador: "distribuidores.cdm.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "API de encomendas", identificador: "api.cdm.co.mz/encomendas", tipo: "API", dominioValidado: true }], recompensa: { min: 2000, max: 90000 }, orcamento: 250000, pago: 0, relatorios: 0, pesquisadores: 0, declaracaoAutoridade: true, alertas: ["A organização ainda está em análise (falta o representante autorizado)."] },
-  { id: "movitel-clientes", nome: "Área de clientes e revendedores", organizacaoId: "movitel", estado: "ativo", tipo: "privado", criadoEm: "2025-06-02", ativos: [{ nome: "Área de clientes", identificador: "app.movitel.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "Portal de revendedores", identificador: "revendedores.movitel.co.mz", tipo: "Aplicação web", dominioValidado: true }], recompensa: { min: 2000, max: 120000 }, orcamento: 500000, pago: 238000, relatorios: 14, pesquisadores: 11, declaracaoAutoridade: true, fase: "controlado", pedidoPublicacaoEm: "2026-11-14", respostaDias: 2 },
+  { id: "movitel-clientes", nome: "Área de clientes e revendedores", organizacaoId: "movitel", estado: "ativo", tipo: "privado", criadoEm: "2025-06-02", ativos: [{ nome: "Área de clientes", identificador: "app.movitel.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "Portal de revendedores", identificador: "revendedores.movitel.co.mz", tipo: "Aplicação web", dominioValidado: true }], recompensa: { min: 2000, max: 120000 }, orcamento: 500000, pago: 238000, relatorios: 14, pesquisadores: 11, declaracaoAutoridade: true, respostaDias: 2 },
   { id: "bvm-portal", nome: "Portal de informação e área de membros", organizacaoId: "bvm", estado: "ativo", tipo: "privado", criadoEm: "2025-08-20", ativos: [{ nome: "Portal de informação", identificador: "www.bvm.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "Área de membros", identificador: "membros.bvm.co.mz", tipo: "Aplicação web", dominioValidado: true }], recompensa: { min: 3000, max: 200000 }, orcamento: 600000, pago: 175000, relatorios: 8, pesquisadores: 6, declaracaoAutoridade: true },
   { id: "mcel-servicos", nome: "Portal de serviços e recargas", organizacaoId: "mcel", estado: "pausado", tipo: "publico", criadoEm: "2025-07-18", ativos: [{ nome: "Portal de serviços", identificador: "mcel.co.mz", tipo: "Aplicação web", dominioValidado: true }, { nome: "API de recargas", identificador: "api.mcel.co.mz/recargas", tipo: "API", dominioValidado: true }], recompensa: { min: 1500, max: 80000 }, orcamento: 200000, pago: 140000, relatorios: 12, pesquisadores: 8, declaracaoAutoridade: true },
   { id: "campanha-2025", nome: "Campanha de verão 2025", organizacaoId: "vodacom", estado: "concluido", tipo: "publico", criadoEm: "2025-11-01", ativos: [{ nome: "Portal de recargas", identificador: "recargas.vodacom.co.mz", tipo: "Aplicação web", dominioValidado: true }], recompensa: { min: 1500, max: 120000 }, orcamento: 100000, pago: 96000, relatorios: 7, pesquisadores: 5, declaracaoAutoridade: true },
@@ -204,17 +206,6 @@ export const programas: Programa[] = [...programasBase, ...programasNovos].map((
 
 export const faseDe = (p: Programa): FasePrograma => p.fase ?? (p.tipo === "privado" ? "privado" : "publico");
 
-/** Critérios para passar de lançamento controlado a público, com o que o programa já cumpre. */
-export function criteriosDeLancamento(p: Programa) {
-  const tratados = p.tratados ?? p.relatorios;
-  const resposta = p.respostaDias ?? 0;
-  return [
-    { rotulo: "Relatórios tratados", detalhe: "Aceites, recusados ou duplicados", cumprido: tratados >= CRITERIOS_LANCAMENTO.relatoriosTratados, texto: `${tratados} de ${CRITERIOS_LANCAMENTO.relatoriosTratados}` },
-    { rotulo: "Pesquisadores com acesso", detalhe: "Convidados ou já ativos", cumprido: p.pesquisadores >= CRITERIOS_LANCAMENTO.pesquisadores, texto: `${p.pesquisadores} de ${CRITERIOS_LANCAMENTO.pesquisadores}` },
-    { rotulo: "Primeira resposta", detalhe: `Em média, até ${CRITERIOS_LANCAMENTO.respostaDias} dias`, cumprido: resposta > 0 && resposta <= CRITERIOS_LANCAMENTO.respostaDias, texto: resposta > 0 ? `${resposta} ${resposta === 1 ? "dia" : "dias"}` : "Sem dados" },
-  ];
-}
-
 export function getPrograma(id: string) {
   return programas.find((p) => p.id === id);
 }
@@ -233,7 +224,11 @@ export const estadosConta: Record<EstadoConta, { label: string; estilo: string }
 };
 
 export type Pesquisador = {
+  /** Identificador da conta. Nos dados da API, o nome mostra-se em `nome`. */
   handle: string;
+  nome?: string;
+  /** Só nos dados da API: não há país, nível nem pontos. */
+  daApi?: boolean;
   pais: string;
   nivel: string;
   pontos: number;
@@ -279,6 +274,8 @@ export const estadosDisputa: Record<EstadoDisputa, { label: string; estilo: stri
 
 export type Disputa = {
   id: string;
+  codigo?: string;
+  organizacaoNome?: string;
   relatorioId: string;
   titulo: string;
   organizacaoId: string;
@@ -302,6 +299,8 @@ export const disputas: Disputa[] = [
 
 export type PedidoTriagem = {
   id: string;
+  organizacaoNome?: string;
+  pesquisador?: string;
   relatorioId: string;
   titulo: string;
   organizacaoId: string;
@@ -331,11 +330,13 @@ export const estadosPagamento: Record<EstadoPagamento, { label: string; estilo: 
 
 export type PagamentoPesquisador = {
   id: string;
+  codigo?: string;
+  organizacaoNome?: string;
   pesquisador: string;
   relatorioId: string;
   organizacaoId: string;
   valor: number;
-  metodo: "M-Pesa" | "e-Mola" | "Transferência";
+  metodo: "M-Pesa" | "e-Mola" | "Transferência" | "-";
   estado: EstadoPagamento;
   data: string;
   erro?: string;
@@ -364,6 +365,8 @@ export const estadosFatura: Record<EstadoFatura, { label: string; estilo: string
 
 export type Fatura = {
   id: string;
+  codigo?: string;
+  organizacaoNome?: string;
   organizacaoId: string;
   descricao: string;
   valor: number;
@@ -392,6 +395,7 @@ export const estadosPedido: Record<EstadoPedido, { label: string; estilo: string
 
 export type PedidoSuporte = {
   id: string;
+  codigo?: string;
   assunto: string;
   de: { tipo: "empresa" | "pesquisador"; nome: string };
   categoria: "Conta" | "Pagamentos" | "Programa" | "Relatório" | "Outro";
@@ -470,6 +474,7 @@ export const funcoes: Record<FuncaoInterna, { label: string; descricao: string }
 };
 
 export type MembroInterno = {
+  id?: string;
   nome: string;
   email: string;
   funcao: FuncaoInterna;

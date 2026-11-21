@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { Alert02Icon, File02Icon, UserGroupIcon, Wallet01Icon } from "@hugeicons/core-free-icons";
 import { StatCard } from "@/components/platform/card";
-import { auditoria, diasDesde } from "@/lib/exemplo";
+import { listarAuditoria } from "@/lib/admin-api";
+import { diasDesde } from "@/lib/exemplo";
 import ListaAuditoria from "./lista-auditoria";
 
 export const metadata: Metadata = { title: "Auditoria" };
 
-export default function AuditoriaPage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function AuditoriaPage() {
+  const auditoria = await listarAuditoria();
   const recentes = auditoria.filter((e) => diasDesde(e.quando.slice(0, 10)) <= 7);
   const hoje = auditoria.filter((e) => diasDesde(e.quando.slice(0, 10)) === 0).length;
   const pessoas = new Set(recentes.map((e) => e.quem)).size;

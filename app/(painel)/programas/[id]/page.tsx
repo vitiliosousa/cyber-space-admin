@@ -7,12 +7,9 @@ import { ProgramAvatar } from "@/components/platform/program-avatar";
 import { Selo } from "@/components/platform/selo";
 import { formatDate, formatIntervaloMZN, formatMZN } from "@/lib/format";
 import { Abas } from "@/components/platform/abas";
-import { correcoesRelatorio, estadosPrograma, estadosRelatorio, getOrganizacao, getPrograma, gravidadeEstilo, gravidadeLabels, logoDe, politicasDivulgacao, programas, relatoriosDoPrograma } from "@/lib/exemplo";
+import { correcoesRelatorio, estadosPrograma, estadosRelatorio, gravidadeEstilo, gravidadeLabels, logoDe, politicasDivulgacao } from "@/lib/exemplo";
+import { obterPrograma, relatoriosDoProgramaApi } from "@/lib/admin-api";
 import Acoes from "./acoes";
-
-export function generateStaticParams() {
-  return programas.filter((p) => p.estado !== "pendente").map((p) => ({ id: p.id }));
-}
 
 export const metadata: Metadata = { title: "Programa" };
 
@@ -24,10 +21,10 @@ export default function ProgramaPage({ params }: PageProps<"/programas/[id]">) {
 
 async function Conteudo({ params }: Pick<PageProps<"/programas/[id]">, "params">) {
   const { id } = await params;
-  const p = getPrograma(id);
-  if (!p || p.estado === "pendente") notFound();
-  const org = getOrganizacao(p.organizacaoId)!;
-  const relatorios = relatoriosDoPrograma(p.id);
+  const dados = await obterPrograma(id);
+  if (!dados || dados.programa.estado === "pendente" || !dados.organizacao) notFound();
+  const { programa: p, organizacao: org } = dados;
+  const relatorios = await relatoriosDoProgramaApi(p.id);
   const uso = p.orcamento > 0 ? Math.min(100, Math.round((p.pago / p.orcamento) * 100)) : 0;
 
   return (
@@ -36,12 +33,11 @@ async function Conteudo({ params }: Pick<PageProps<"/programas/[id]">, "params">
 
       <section aria-labelledby="programa-nome" className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(26,22,37,0.06)] md:p-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <ProgramAvatar logo={logoDe(org.id)} size="xl" />
+          <ProgramAvatar logo={logoDe(org.id, org.logoVersao)} nome={org.nome} size="xl" />
           <h2 id="programa-nome" className="text-2xl font-bold md:text-3xl">
             {p.nome}
           </h2>
           <Selo info={estadosPrograma[p.estado]} />
-          {p.fase === "controlado" && <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-sm font-medium text-sky-800">Lançamento controlado</span>}
         </div>
         <p className="mt-1 text-muted-foreground">
           <Link href={`/organizacoes/${org.id}`} className="font-medium text-primary-strong hover:underline">

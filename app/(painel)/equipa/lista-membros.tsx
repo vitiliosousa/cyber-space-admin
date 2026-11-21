@@ -17,10 +17,11 @@ function Acoes({ m }: { m: MembroInterno }) {
   const [state, formAction, pending] = useActionState(alterarMembro, {} as MembroState);
   return (
     <form action={formAction} className="flex flex-col items-end gap-1">
+      <input type="hidden" name="id" value={m.id ?? ""} />
       <div className="flex flex-wrap justify-end gap-2">
         {m.estado === "ativo" && !m.doisPassos && (
           <Button type="submit" name="acao" value="repor" size="sm" variant="outline" disabled={pending} className="h-9 px-4">
-            Reenviar configuração<span className="sr-only"> de {m.nome}</span>
+            Repor dois passos<span className="sr-only"> de {m.nome}</span>
           </Button>
         )}
         <Button type="submit" name="acao" value={m.estado === "desativado" ? "reativar" : "desativar"} size="sm" variant="outline" disabled={pending} className={`h-9 px-4 ${m.estado === "desativado" ? "" : "text-danger"}`}>
@@ -29,7 +30,7 @@ function Acoes({ m }: { m: MembroInterno }) {
         </Button>
       </div>
       {state.message && (
-        <p role="alert" className="max-w-64 text-right text-sm text-muted-foreground">
+        <p role={state.ok ? "status" : "alert"} className="max-w-64 text-right text-sm text-muted-foreground">
           {state.message}
         </p>
       )}
@@ -56,7 +57,7 @@ export default function ListaMembros({ membros }: { membros: MembroInterno[] }) 
                   {funcoes[m.funcao].label} · {m.email}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {m.estado === "convidado" ? "Ainda não entrou" : `Último acesso ${formatDate(m.ultimoAcesso.slice(0, 10))}, ${m.ultimoAcesso.slice(11)}`}
+                  {m.estado === "convidado" || !m.ultimoAcesso ? "Ainda não entrou" : `Último acesso ${formatDate(m.ultimoAcesso.slice(0, 10))}, ${m.ultimoAcesso.slice(11)}`}
                   {m.estado === "ativo" && !m.doisPassos && <span className="font-medium text-danger"> · sem dois passos</span>}
                 </p>
               </div>

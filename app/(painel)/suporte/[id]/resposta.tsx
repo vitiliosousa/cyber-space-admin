@@ -16,7 +16,7 @@ export default function Resposta({ id, resolvido }: { id: string; resolvido: boo
   return (
     <form ref={ref} action={formAction} noValidate className="space-y-4">
       <input type="hidden" name="id" value={id} />
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <TextAreaField id="texto" label="Resposta" required className="min-h-28" error={state.errors?.texto} />
       {!resolvido && (
         <label className="flex items-center justify-between gap-4">

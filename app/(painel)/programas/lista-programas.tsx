@@ -9,7 +9,7 @@ import { Selo } from "@/components/platform/selo";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { estadosPrograma, logoDe, nomeOrganizacao, organizacoes, type EstadoPrograma, type Programa } from "@/lib/exemplo";
+import { estadosPrograma, logoDe, nomeOrganizacao, type EstadoPrograma, type Programa } from "@/lib/exemplo";
 import { formatIntervaloMZN, formatMZN } from "@/lib/format";
 
 type Vista = "cartoes" | "lista";
@@ -67,7 +67,6 @@ const recompensas = [
   { value: "150000", label: "Até 150 000 MZN ou mais" },
 ];
 
-const orgs = [{ value: "todos", label: "Todas as organizações" }, ...organizacoes.map((o) => ({ value: o.id, label: o.nome }))];
 
 function FiltroSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
@@ -96,6 +95,7 @@ export default function ListaProgramas({ programas }: { programas: Programa[] })
   const [org, setOrg] = useState("todos");
   const [alvo, setAlvo] = useState("todos");
   const [recompensa, setRecompensa] = useState("todas");
+  const orgs = useMemo(() => [{ value: "todos", label: "Todas as organizações" }, ...[...new Map(programas.map((p) => [p.organizacaoId, p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)])).entries()].map(([value, label]) => ({ value, label }))], [programas]);
 
   const visiveis = useMemo(() => {
     const termo = pesquisa.trim().toLowerCase();
@@ -106,7 +106,7 @@ export default function ListaProgramas({ programas }: { programas: Programa[] })
         (org === "todos" || p.organizacaoId === org) &&
         (alvo === "todos" || p.ativos.some((a) => gruposDeAlvo[alvo]?.includes(a.tipo))) &&
         (recompensa === "todas" || p.recompensa.max >= Number(recompensa)) &&
-        (!termo || `${p.nome} ${nomeOrganizacao(p.organizacaoId)}`.toLowerCase().includes(termo))
+        (!termo || `${p.nome} ${p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)}`.toLowerCase().includes(termo))
     );
   }, [programas, pesquisa, estado, tipo, org, alvo, recompensa]);
 
@@ -188,12 +188,12 @@ export default function ListaProgramas({ programas }: { programas: Programa[] })
           <ul className="divide-y divide-line @3xl:hidden">
             {visiveis.map((p) => (
               <li key={p.id} className="relative flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-primary/5">
-                <ProgramAvatar logo={logoDe(p.organizacaoId)} />
+                <ProgramAvatar logo={logoDe(p.organizacaoId, p.logoVersao)} nome={p.organizacaoNome} />
                 <div className="min-w-0 flex-1">
                   <Link href={destino(p)} className="block truncate font-medium after:absolute after:inset-0">
                     {p.nome}
                   </Link>
-                  <p className="truncate text-sm text-muted-foreground">{nomeOrganizacao(p.organizacaoId)}</p>
+                  <p className="truncate text-sm text-muted-foreground">{p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)}</p>
                 </div>
                 <Selo info={estadosPrograma[p.estado]} />
               </li>
@@ -217,12 +217,12 @@ export default function ListaProgramas({ programas }: { programas: Programa[] })
                 <tr key={p.id} className="relative transition-colors hover:bg-primary/5">
                   <td className="px-5 py-3">
                     <span className="flex items-center gap-3">
-                      <ProgramAvatar logo={logoDe(p.organizacaoId)} />
+                      <ProgramAvatar logo={logoDe(p.organizacaoId, p.logoVersao)} nome={p.organizacaoNome} />
                       <span className="min-w-0">
                         <Link href={destino(p)} className="block font-medium after:absolute after:inset-0 hover:text-primary-strong">
                           {p.nome}
                         </Link>
-                        <span className="block text-sm text-muted-foreground">{nomeOrganizacao(p.organizacaoId)}</span>
+                        <span className="block text-sm text-muted-foreground">{p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)}</span>
                       </span>
                     </span>
                   </td>
@@ -246,16 +246,15 @@ export default function ListaProgramas({ programas }: { programas: Programa[] })
                   className="group flex h-full flex-col rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(26,22,37,0.06)] transition-all hover:border-primary/40 hover:shadow-[0_6px_20px_rgba(26,22,37,0.1)]"
                 >
                   <div className="flex items-start gap-4">
-                    <ProgramAvatar logo={logoDe(p.organizacaoId)} size="lg" />
+                    <ProgramAvatar logo={logoDe(p.organizacaoId, p.logoVersao)} nome={p.organizacaoNome} size="lg" />
                     <div className="min-w-0 flex-1">
                       <p className="text-lg font-semibold leading-snug">{p.nome}</p>
-                      <p className="mt-0.5 text-sm text-muted-foreground">{nomeOrganizacao(p.organizacaoId)}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)}</p>
                     </div>
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Selo info={estadosPrograma[p.estado]} />
-                    {p.fase === "controlado" && <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-sm font-medium text-sky-800">Lançamento controlado</span>}
                     <span className="rounded-full bg-canvas px-2.5 py-0.5 text-sm font-medium text-muted-foreground ring-1 ring-line">{p.tipo === "publico" ? "Público" : "Privado"}</span>
                   </div>
 

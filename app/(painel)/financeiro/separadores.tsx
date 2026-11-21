@@ -31,7 +31,7 @@ function exportar(pagamentos: PagamentoPesquisador[]) {
   const celula = (v: string | number) => `"${String(v).replaceAll('"', '""')}"`;
   const linhas = [
     ["Pagamento", "Pesquisador", "Relatório", "Organização", "Valor (MZN)", "Método", "Estado", "Data"],
-    ...pagamentos.map((p) => [p.id, p.pesquisador, p.relatorioId, nomeOrganizacao(p.organizacaoId), p.valor, p.metodo, estadosPagamento[p.estado].label, p.data]),
+    ...pagamentos.map((p) => [p.codigo ?? p.id, p.pesquisador, p.relatorioId, p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId), p.valor, p.metodo, estadosPagamento[p.estado].label, p.data]),
   ];
   const blob = new Blob(["﻿" + linhas.map((l) => l.map(celula).join(";")).join("\n")], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -81,7 +81,7 @@ export default function Separadores({ pagamentos, faturas }: { pagamentos: Pagam
             nome="pagamentos"
             placeholder="Pesquisar por pesquisador, relatório ou organização"
             itens={pagamentos}
-            texto={(p) => `${p.id} ${p.pesquisador} ${p.relatorioId} ${nomeOrganizacao(p.organizacaoId)}`}
+            texto={(p) => `${p.codigo ?? p.id} ${p.pesquisador} ${p.relatorioId} ${p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)}`}
             filtros={filtros}
             linha={(p) => (
               <li key={p.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4">
@@ -90,7 +90,7 @@ export default function Separadores({ pagamentos, faturas }: { pagamentos: Pagam
                     {p.pesquisador}
                   </Link>
                   <p className="text-sm text-muted-foreground">
-                    {p.id} · {p.relatorioId} · {nomeOrganizacao(p.organizacaoId)} · {formatDate(p.data)}
+                    {p.codigo ?? p.id} · {p.relatorioId} · {p.organizacaoNome ?? nomeOrganizacao(p.organizacaoId)} · {formatDate(p.data)}
                   </p>
                   {p.erro && <p className="text-sm text-danger">{p.erro}</p>}
                 </div>
@@ -100,8 +100,8 @@ export default function Separadores({ pagamentos, faturas }: { pagamentos: Pagam
                   <Selo info={estadosPagamento[p.estado]} />
                 </span>
                 <span className="flex w-32 justify-end">
-                  {p.estado === "pendente" && <BotaoAcao acao="processar" id={p.id} rotulo="Processar" nome={p.id} variante="default" />}
-                  {p.estado === "falhado" && <BotaoAcao acao="repetir" id={p.id} rotulo="Tentar de novo" nome={p.id} />}
+                  {p.estado === "pendente" && <BotaoAcao acao="processar" id={p.id} rotulo="Processar" nome={p.codigo ?? p.id} variante="default" />}
+                  {p.estado === "falhado" && <BotaoAcao acao="repetir" id={p.id} rotulo="Tentar de novo" nome={p.codigo ?? p.id} />}
                 </span>
               </li>
             )}
@@ -113,10 +113,10 @@ export default function Separadores({ pagamentos, faturas }: { pagamentos: Pagam
                 <li key={f.id} className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4">
                   <div className="min-w-0 flex-1 basis-56">
                     <Link href={`/organizacoes/${f.organizacaoId}`} className="block truncate font-semibold hover:text-primary-strong">
-                      {nomeOrganizacao(f.organizacaoId)}
+                      {f.organizacaoNome ?? nomeOrganizacao(f.organizacaoId)}
                     </Link>
                     <p className="text-sm text-muted-foreground">
-                      {f.id} · {f.descricao} · vence a {formatDate(f.vence)}
+                      {f.codigo ?? f.id} · {f.descricao} · vence a {formatDate(f.vence)}
                     </p>
                   </div>
                   <p className="w-28 text-right font-semibold tabular-nums">{formatMZN(f.valor)}</p>

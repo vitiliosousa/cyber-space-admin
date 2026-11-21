@@ -12,17 +12,27 @@ const tamanhos = {
  */
 export function ProgramAvatar({
   logo,
+  nome,
   size = "md",
 }: {
   logo: string;
+  /** Sem logótipo, mostram-se as iniciais deste nome. */
+  nome?: string;
   size?: keyof typeof tamanhos;
 }) {
+  if (!logo) {
+    return (
+      <span data-fixo aria-hidden className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-primary/10 text-sm font-bold text-primary-strong ${tamanhos[size]}`}>
+        {(nome ?? "?").slice(0, 2).toUpperCase()}
+      </span>
+    );
+  }
   return (
     <span
       data-fixo
       className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-white p-2 ${tamanhos[size]}`}
     >
-      <Image src={logo} alt="" width={96} height={64} className="size-full object-contain" />
+      <Image src={logo} alt="" width={96} height={64} unoptimized className="size-full object-contain" />
     </span>
   );
 }

@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
-import { disputas, filaTriagem } from "@/lib/exemplo";
+import { listarDisputas, listarTriagem } from "@/lib/admin-api";
 import Separadores from "./separadores";
 
 export const metadata: Metadata = { title: "Relatórios" };
 
-export default function RelatoriosPage() {
-  return <Separadores fila={filaTriagem} disputas={disputas} />;
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function RelatoriosPage() {
+  const [fila, disputas] = await Promise.all([listarTriagem(), listarDisputas()]);
+  return <Separadores fila={fila} disputas={disputas} />;
 }

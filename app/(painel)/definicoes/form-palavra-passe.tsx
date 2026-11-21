@@ -15,7 +15,7 @@ export default function FormPalavraPasse() {
 
   return (
     <form ref={ref} action={formAction} noValidate className="space-y-4 sm:max-w-md">
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <PasswordField id="atual" label="Palavra-passe atual" autoComplete="current-password" error={errors.atual} />
       <PasswordField id="nova" label="Nova palavra-passe" autoComplete="new-password" hint="Pelo menos 12 caracteres." error={errors.nova} />
       <PasswordField id="confirmar" label="Repita a nova palavra-passe" autoComplete="new-password" error={errors.confirmar} />

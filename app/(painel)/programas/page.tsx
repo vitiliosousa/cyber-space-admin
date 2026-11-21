@@ -2,12 +2,16 @@ import type { Metadata } from "next";
 import { Alert02Icon, CheckmarkCircle02Icon, Clock01Icon, Target02Icon } from "@hugeicons/core-free-icons";
 import { StatCard } from "@/components/platform/card";
 import { formatMZN } from "@/lib/format";
-import { programas } from "@/lib/exemplo";
+import { listarProgramas } from "@/lib/admin-api";
 import ListaProgramas from "./lista-programas";
 
 export const metadata: Metadata = { title: "Programas" };
 
-export default function ProgramasPage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function ProgramasPage() {
+  const programas = await listarProgramas();
   const conta = (e: string) => programas.filter((p) => p.estado === e).length;
   const pago = programas.reduce((t, p) => t + p.pago, 0);
   const relatorios = programas.reduce((t, p) => t + p.relatorios, 0);

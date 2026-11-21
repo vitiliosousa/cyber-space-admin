@@ -26,7 +26,7 @@ export default function ListaPedidos({ pedidos }: { pedidos: PedidoSuporte[] }) 
       nome="pedidos"
       placeholder="Pesquisar por assunto ou nome"
       itens={pedidos}
-      texto={(p) => `${p.id} ${p.assunto} ${p.de.nome} ${p.categoria}`}
+      texto={(p) => `${p.codigo ?? p.id} ${p.assunto} ${p.de.nome} ${p.categoria}`}
       filtros={filtros}
       linha={(p) => (
         <li key={p.id} className="relative flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 transition-colors hover:bg-primary/5">
@@ -35,7 +35,7 @@ export default function ListaPedidos({ pedidos }: { pedidos: PedidoSuporte[] }) 
               {p.assunto}
             </Link>
             <p className="text-sm text-muted-foreground">
-              {p.id} · {p.de.nome} ({p.de.tipo === "empresa" ? "empresa" : "pesquisador"}) · {p.categoria} · {haDias(p.aberto)}
+              {p.codigo ?? p.id} · {p.de.nome} ({p.de.tipo === "empresa" ? "empresa" : "pesquisador"}) · {p.categoria} · {haDias(p.aberto)}
             </p>
           </div>
           <p className="w-28 text-sm text-muted-foreground">{p.responsavel ?? "Sem responsável"}</p>

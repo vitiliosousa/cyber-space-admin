@@ -25,7 +25,7 @@ export default function ListaOrganizacoes({ organizacoes }: { organizacoes: Orga
       filtros={filtros}
       linha={(o) => (
         <li key={o.id} className="relative flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 transition-colors hover:bg-primary/5">
-          <ProgramAvatar logo={logoDe(o.id)} />
+          <ProgramAvatar logo={logoDe(o.id, o.logoVersao)} nome={o.nome} />
           <div className="min-w-0 flex-1 basis-52">
             <Link href={`/organizacoes/${o.id}`} className="block truncate font-semibold after:absolute after:inset-0 hover:text-primary-strong">
               {o.nome}

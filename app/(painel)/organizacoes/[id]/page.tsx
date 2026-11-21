@@ -6,12 +6,9 @@ import { Card } from "@/components/platform/card";
 import { ProgramAvatar } from "@/components/platform/program-avatar";
 import { Selo } from "@/components/platform/selo";
 import { formatDate } from "@/lib/format";
-import { estadosOrganizacao, estadosPrograma, getOrganizacao, haDias, logoDe, organizacoes, programas } from "@/lib/exemplo";
+import { listarProgramas, obterOrganizacao } from "@/lib/admin-api";
+import { estadosOrganizacao, estadosPrograma, haDias, logoDe } from "@/lib/exemplo";
 import Acoes from "./acoes";
-
-export function generateStaticParams() {
-  return organizacoes.map((o) => ({ id: o.id }));
-}
 
 export const metadata: Metadata = { title: "Organização" };
 
@@ -23,7 +20,7 @@ export default function OrganizacaoPage({ params }: PageProps<"/organizacoes/[id
 
 async function Conteudo({ params }: Pick<PageProps<"/organizacoes/[id]">, "params">) {
   const { id } = await params;
-  const o = getOrganizacao(id);
+  const [o, programas] = await Promise.all([obterOrganizacao(id), listarProgramas()]);
   if (!o) notFound();
   const meus = programas.filter((p) => p.organizacaoId === o.id);
 
@@ -33,7 +30,7 @@ async function Conteudo({ params }: Pick<PageProps<"/organizacoes/[id]">, "param
 
       <section aria-labelledby="org-nome" className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(26,22,37,0.06)] md:p-6">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <ProgramAvatar logo={logoDe(o.id)} size="xl" />
+          <ProgramAvatar logo={logoDe(o.id, o.logoVersao)} nome={o.nome} size="xl" />
           <h2 id="org-nome" className="text-2xl font-bold md:text-3xl">
             {o.nome}
           </h2>
@@ -106,7 +103,7 @@ async function Conteudo({ params }: Pick<PageProps<"/organizacoes/[id]">, "param
 
         <aside className="xl:sticky xl:top-24">
           <Card title="Ações" headingId="acoes-titulo">
-            <Acoes id={o.id} estado={o.estado} />
+            <Acoes id={o.id} estado={o.estado} passos={o.passos} />
           </Card>
         </aside>
       </div>

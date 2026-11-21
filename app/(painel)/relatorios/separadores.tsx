@@ -24,7 +24,7 @@ function FormTriagem({ t }: { t: PedidoTriagem }) {
   return (
     <form ref={ref} action={formAction} noValidate className="space-y-4 border-t border-line bg-canvas/50 px-5 py-4">
       <input type="hidden" name="id" value={t.id} />
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <div className="grid gap-4 sm:grid-cols-2">
         <SelectField id={`gravidade-${t.id}`} label="Gravidade final" placeholder="Escolha a gravidade" defaultValue={t.gravidadeSugerida} options={Object.entries(gravidadeLabels).map(([value, label]) => ({ value, label }))} error={errors.gravidade} />
       </div>
@@ -48,7 +48,7 @@ function FormDisputa({ d }: { d: Disputa }) {
     <form ref={ref} action={formAction} noValidate className="space-y-4 border-t border-line bg-canvas/50 px-5 py-4">
       <input type="hidden" name="id" value={d.id} />
       <input type="hidden" name="decisao" value={decisao} />
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Decisão</legend>
         <div className="grid gap-2 sm:grid-cols-3">
@@ -110,7 +110,7 @@ export default function Separadores({ fila, disputas }: { fila: PedidoTriagem[];
                   <div className="min-w-0 flex-1 basis-60">
                     <p className="font-semibold">{t.titulo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {t.relatorioId} · {nomeOrganizacao(t.organizacaoId)} · recebido {haDias(t.recebidoEm)}
+                      {t.relatorioId} · {t.organizacaoNome ?? nomeOrganizacao(t.organizacaoId)} · recebido {haDias(t.recebidoEm)}
                       {t.analista && ` · ${t.analista}`}
                     </p>
                   </div>
@@ -130,7 +130,7 @@ export default function Separadores({ fila, disputas }: { fila: PedidoTriagem[];
                   <div className="min-w-0 flex-1 basis-60">
                     <p className="font-semibold">{d.titulo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {d.id} · {nomeOrganizacao(d.organizacaoId)} · {d.pesquisador} · aberta {haDias(d.abertaEm)}
+                      {d.codigo ?? d.id} · {d.organizacaoNome ?? nomeOrganizacao(d.organizacaoId)} · {d.pesquisador} · aberta {haDias(d.abertaEm)}
                       {d.valor && ` · ${formatMZN(d.valor)}`}
                     </p>
                   </div>

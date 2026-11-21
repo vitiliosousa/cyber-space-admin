@@ -1,28 +1,33 @@
 "use server";
 
-import { faturas, pagamentos } from "@/lib/exemplo";
+import { revalidatePath } from "next/cache";
+import { chamarApi } from "@/lib/api";
 
-export type AcaoFinanceiraState = { message?: string };
+export type AcaoFinanceiraState = { message?: string; ok?: boolean };
+
+const ID = /^[0-9a-f-]{36}$/i;
 
 /** Uma só ação para os botões de pagamentos e faturas; o campo `acao` diz qual. */
 export async function acaoFinanceira(_prev: AcaoFinanceiraState, formData: FormData): Promise<AcaoFinanceiraState> {
   const acao = String(formData.get("acao") ?? "");
   const id = String(formData.get("id") ?? "");
+  if (!ID.test(id)) return { message: "Este registo já não existe." };
 
   if (acao === "processar" || acao === "repetir") {
-    const p = pagamentos.find((x) => x.id === id);
-    if (!p) return { message: "Este pagamento já não existe." };
-    if (p.estado === "processado") return { message: "Este pagamento já foi processado." };
-    // TODO: enviar o pagamento pelo método do pesquisador quando houver backend.
-    return { message: "O pagamento ainda não pode ser enviado. Volte a tentar em breve." };
+    // A API envia o pagamento pelo método do pesquisador. Cada pagamento só se envia uma vez de cada vez.
+    const r = await chamarApi<{ estado: string; erro: string | null }>(`/admin/pagamentos/${id}/processar`, { corpo: {} });
+    if (!r.ok) return { message: r.message };
+    revalidatePath("/financeiro");
+    return r.dados.estado === "processado" ? { ok: true, message: "Pagamento enviado." } : { message: r.dados.erro ?? "O envio falhou." };
   }
 
-  if (acao === "lembrar" || acao === "paga") {
-    const f = faturas.find((x) => x.id === id);
-    if (!f) return { message: "Esta fatura já não existe." };
-    if (f.estado === "paga") return { message: "Esta fatura já está paga." };
-    return { message: "Esta ação ainda não está disponível. Volte a tentar em breve." };
+  if (acao === "paga") {
+    const r = await chamarApi(`/admin/faturas/${id}/pagar`, { corpo: {} });
+    if (!r.ok) return { message: r.message };
+    revalidatePath("/financeiro");
+    return { ok: true, message: "Fatura marcada como paga." };
   }
 
+  if (acao === "lembrar") return { message: "Os lembretes ainda não estão disponíveis. A fatura pode ser marcada como paga quando o pagamento chegar." };
   return { message: "Ação desconhecida." };
 }

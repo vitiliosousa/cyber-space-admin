@@ -4,12 +4,9 @@ import { BackLink } from "@/components/platform/back-link";
 import { Card } from "@/components/platform/card";
 import { Selo } from "@/components/platform/selo";
 import { formatDate } from "@/lib/format";
-import { estadosPedido, getPedido, pedidos } from "@/lib/exemplo";
+import { obterPedido } from "@/lib/admin-api";
+import { estadosPedido } from "@/lib/exemplo";
 import Resposta from "./resposta";
-
-export function generateStaticParams() {
-  return pedidos.map((p) => ({ id: p.id }));
-}
 
 export const metadata: Metadata = { title: "Pedido de suporte" };
 
@@ -21,7 +18,7 @@ export default function PedidoPage({ params }: PageProps<"/suporte/[id]">) {
 
 async function Conteudo({ params }: Pick<PageProps<"/suporte/[id]">, "params">) {
   const { id } = await params;
-  const p = getPedido(id);
+  const p = await obterPedido(id);
   if (!p) notFound();
 
   return (
@@ -29,7 +26,7 @@ async function Conteudo({ params }: Pick<PageProps<"/suporte/[id]">, "params">) 
       <BackLink href="/suporte">Voltar ao suporte</BackLink>
 
       <section aria-labelledby="pedido-assunto" className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(26,22,37,0.06)] md:p-6">
-        <p className="text-sm text-muted-foreground">{p.id}</p>
+        <p className="text-sm text-muted-foreground">{p.codigo ?? p.id}</p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 id="pedido-assunto" className="text-2xl font-bold md:text-3xl">
             {p.assunto}

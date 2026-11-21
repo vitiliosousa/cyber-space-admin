@@ -16,7 +16,8 @@ export default function Convite() {
 
   return (
     <form ref={ref} action={formAction} noValidate className="space-y-4">
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
+      <TextField id="nome" label="Nome" autoComplete="off" error={errors.nome} />
       <TextField id="email" label="E-mail" type="email" autoComplete="off" placeholder="nome@cyberspace.co.mz" hint="Só e-mails @cyberspace.co.mz." error={errors.email} />
       <SelectField id="funcao" label="Função" placeholder="Escolha a função" options={Object.entries(funcoes).map(([value, f]) => ({ value, label: f.label }))} error={errors.funcao} />
       <Button type="submit" size="lg" disabled={pending} className="w-full">

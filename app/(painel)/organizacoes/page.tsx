@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { Alert02Icon, Building03Icon, CheckmarkCircle02Icon, Clock01Icon } from "@hugeicons/core-free-icons";
 import { StatCard } from "@/components/platform/card";
-import { organizacoes } from "@/lib/exemplo";
+import { listarOrganizacoes } from "@/lib/admin-api";
 import ListaOrganizacoes from "./lista-organizacoes";
 
 export const metadata: Metadata = { title: "Organizações" };
 
-export default function OrganizacoesPage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function OrganizacoesPage() {
+  const organizacoes = await listarOrganizacoes();
   const conta = (e: string) => organizacoes.filter((o) => o.estado === e).length;
   const comProgramas = organizacoes.filter((o) => o.programas > 0).length;
 

@@ -1,48 +1,60 @@
 "use server";
 
-import { criteriosDeLancamento, getOrganizacao, getPrograma } from "@/lib/exemplo";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { chamarApi } from "@/lib/api";
 
-export type DecisaoState = { errors?: { nota?: string; decisao?: string }; message?: string };
+export type DecisaoState = { errors?: { nota?: string; decisao?: string }; message?: string; ok?: boolean };
+
+const ID = /^[0-9a-f-]{36}$/i;
+
+function atualizar(id: string) {
+  revalidatePath(`/aprovacoes/${id}`);
+  revalidatePath("/aprovacoes");
+  revalidatePath("/programas");
+}
 
 /** Decisão sobre um programa pendente: aprovar, pedir mais informação ou rejeitar. */
 export async function decidirPrograma(_prev: DecisaoState, formData: FormData): Promise<DecisaoState> {
   const decisao = String(formData.get("decisao") ?? "");
   const nota = String(formData.get("nota") ?? "").trim();
-  const programa = getPrograma(String(formData.get("id") ?? ""));
-  if (!programa || programa.estado !== "pendente") return { message: "Este programa já não está à espera de aprovação." };
+  const id = String(formData.get("id") ?? "");
   if (!["aprovar", "informacao", "rejeitar"].includes(decisao)) return { errors: { decisao: "Escolha uma decisão." } };
+  if (decisao !== "aprovar" && nota.length < 10) return { errors: { nota: decisao === "rejeitar" ? "Explique o motivo da rejeição, com pelo menos 10 caracteres." : "Diga o que falta, com pelo menos 10 caracteres." } };
+  if (!ID.test(id)) return { message: "Este programa já não existe." };
 
-  if (decisao === "aprovar") {
-    // A regra vale no servidor: o cliente nunca é de confiança.
-    const org = getOrganizacao(programa.organizacaoId);
-    if (org?.estado !== "verificada") return { message: "Só pode aprovar programas de organizações verificadas." };
-    if (programa.ativos.some((a) => !a.dominioValidado)) return { message: "Valide todos os domínios antes de aprovar." };
-    if (!programa.declaracaoAutoridade) return { message: "A organização ainda não declarou ter autoridade sobre os ativos." };
-  } else if (nota.length < 10) {
-    return { errors: { nota: decisao === "rejeitar" ? "Explique o motivo da rejeição, com pelo menos 10 caracteres." : "Diga o que falta, com pelo menos 10 caracteres." } };
-  }
-
-  // TODO: guardar a decisão, avisar a organização e registar na auditoria quando houver backend.
-  return { message: "A decisão ainda não pode ser guardada. Volte a tentar em breve." };
+  // A API aplica as regras: organização verificada, domínios validados e o aviso à organização.
+  const r = await chamarApi(`/admin/programas/${id}/decisao`, { corpo: { decisao, nota: nota || undefined } });
+  if (!r.ok) return { errors: r.errors?.nota ? { nota: r.errors.nota } : undefined, message: r.errors?.nota ? undefined : r.message };
+  atualizar(id);
+  // O programa deixa de estar à espera: volta-se à lista.
+  redirect("/aprovacoes");
 }
 
-/** Decisão sobre a passagem de um programa a público: abrir a todos ou manter em lançamento controlado. */
-export async function decidirPublicacao(_prev: DecisaoState, formData: FormData): Promise<DecisaoState> {
+/** Confirma ou retira a validação do domínio de um ativo. */
+export async function validarDominio(_prev: DecisaoState, formData: FormData): Promise<DecisaoState> {
+  const programa = String(formData.get("programa") ?? "");
+  const ativo = String(formData.get("ativo") ?? "");
+  if (!ID.test(programa) || !ID.test(ativo)) return { message: "Este ativo já não existe." };
+  const r = await chamarApi(`/admin/programas/${programa}/ativos/${ativo}/validacao`, { corpo: { validado: String(formData.get("validado")) === "sim" } });
+  if (!r.ok) return { message: r.message };
+  atualizar(programa);
+  return { ok: true };
+}
+
+/** Decisão sobre alterações propostas a um programa ativo: aprovar (confirmando os domínios novos) ou recusar. */
+export async function decidirAlteracao(_prev: DecisaoState, formData: FormData): Promise<DecisaoState> {
   const decisao = String(formData.get("decisao") ?? "");
   const nota = String(formData.get("nota") ?? "").trim();
-  const programa = getPrograma(String(formData.get("id") ?? ""));
-  if (!programa || !programa.pedidoPublicacaoEm) return { message: "Este programa já não está à espera de passar a público." };
-  if (!["publicar", "manter"].includes(decisao)) return { errors: { decisao: "Escolha uma decisão." } };
+  const id = String(formData.get("id") ?? "");
+  const dominios = formData.getAll("dominio").map(String);
+  if (!["aprovar", "rejeitar"].includes(decisao)) return { errors: { decisao: "Escolha uma decisão." } };
+  if (decisao === "rejeitar" && nota.length < 10) return { errors: { nota: "Explique o motivo, com pelo menos 10 caracteres. A organização vê este texto." } };
+  if (!ID.test(id)) return { message: "Esta alteração já não existe." };
 
-  if (decisao === "publicar") {
-    // A regra vale no servidor: só se abre a todos com os critérios cumpridos e a organização verificada.
-    const falta = criteriosDeLancamento(programa).filter((c) => !c.cumprido);
-    if (falta.length > 0) return { message: `Ainda não cumpre: ${falta.map((c) => c.rotulo.toLowerCase()).join(", ")}.` };
-    if (getOrganizacao(programa.organizacaoId)?.estado !== "verificada") return { message: "Só pode abrir programas de organizações verificadas." };
-  } else if (nota.length < 10) {
-    return { errors: { nota: "Diga o que falta, com pelo menos 10 caracteres. A organização vê este texto." } };
-  }
-
-  // TODO: guardar a decisão, avisar a organização e os pesquisadores e registar na auditoria quando houver backend.
-  return { message: "A decisão ainda não pode ser guardada. Volte a tentar em breve." };
+  const r = await chamarApi(`/admin/alteracoes/${id}/decisao`, { corpo: { decisao, nota: nota || undefined, dominios: decisao === "aprovar" ? dominios : undefined } });
+  if (!r.ok) return { errors: r.errors?.nota ? { nota: r.errors.nota } : undefined, message: r.errors?.nota ? undefined : r.message };
+  revalidatePath("/aprovacoes");
+  revalidatePath("/programas");
+  redirect("/aprovacoes");
 }

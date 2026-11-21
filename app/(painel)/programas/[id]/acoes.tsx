@@ -30,7 +30,7 @@ export default function Acoes({ id, estado }: { id: string; estado: EstadoProgra
     <form ref={ref} action={formAction} noValidate className="space-y-4">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="decisao" value={decisao} />
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <fieldset>
         <legend className="sr-only">Ação</legend>
         <div className="grid gap-2">

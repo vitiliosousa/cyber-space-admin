@@ -14,7 +14,7 @@ const todas = [
   { value: "reativar", titulo: "Reativar", texto: "A conta volta a estar ativa.", para: ["suspenso", "banido"], pedeNota: false },
 ] as const;
 
-export default function Acoes({ handle, estado }: { handle: string; estado: EstadoConta }) {
+export default function Acoes({ handle, estado, temDocumento }: { handle: string; estado: EstadoConta; temDocumento: boolean }) {
   const [state, formAction, pending] = useActionState(decidirConta, {} as ContaState);
   const [decisao, setDecisao] = useState("");
   const ref = useRef<HTMLFormElement>(null);
@@ -30,13 +30,13 @@ export default function Acoes({ handle, estado }: { handle: string; estado: Esta
     <form ref={ref} action={formAction} noValidate className="space-y-4">
       <input type="hidden" name="handle" value={handle} />
       <input type="hidden" name="decisao" value={decisao} />
-      <FormAlert>{state.message}</FormAlert>
+      <FormAlert sucesso={state.ok}>{state.message}</FormAlert>
       <fieldset>
         <legend className="sr-only">Ação</legend>
         <div className="grid gap-2">
           {opcoes.map((o) => (
             <label key={o.value} className="cursor-pointer">
-              <input type="radio" value={o.value} checked={decisao === o.value} onChange={() => setDecisao(o.value)} className="peer sr-only" />
+              <input type="radio" value={o.value} checked={decisao === o.value} onChange={() => setDecisao(o.value)} disabled={o.value === "verificar" && !temDocumento} className="peer sr-only" />
               <span className="block rounded-2xl border border-line p-3 transition-colors peer-checked:border-primary peer-checked:bg-primary/5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-primary">
                 <span className="block font-semibold">{o.titulo}</span>
                 <span className="block text-sm text-muted-foreground">{o.texto}</span>

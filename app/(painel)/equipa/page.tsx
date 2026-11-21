@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
 import { Card } from "@/components/platform/card";
-import { funcoes, membros } from "@/lib/exemplo";
+import { listarEquipa } from "@/lib/admin-api";
+import { funcoes } from "@/lib/exemplo";
 import Convite from "./convite";
 import ListaMembros from "./lista-membros";
 
 export const metadata: Metadata = { title: "Equipa" };
 
-export default function EquipaPage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function EquipaPage() {
+  const membros = await listarEquipa();
   const semDoisPassos = membros.filter((m) => m.estado === "ativo" && !m.doisPassos);
   return (
     <div className="space-y-6">

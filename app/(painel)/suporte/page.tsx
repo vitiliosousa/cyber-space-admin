@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import { CheckmarkCircle02Icon, Clock01Icon, Message01Icon, UserIcon } from "@hugeicons/core-free-icons";
 import { StatCard } from "@/components/platform/card";
-import { pedidos } from "@/lib/exemplo";
+import { listarPedidos } from "@/lib/admin-api";
 import ListaPedidos from "./lista-pedidos";
 
 export const metadata: Metadata = { title: "Suporte" };
 
 const ordem = { novo: 0, "em-curso": 1, resolvido: 2 } as const;
 
-export default function SuportePage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function SuportePage() {
+  const pedidos = await listarPedidos();
   const conta = (e: string) => pedidos.filter((p) => p.estado === e).length;
   const semResponsavel = pedidos.filter((p) => p.estado !== "resolvido" && !p.responsavel).length;
   const deEmpresas = pedidos.filter((p) => p.estado !== "resolvido" && p.de.tipo === "empresa").length;

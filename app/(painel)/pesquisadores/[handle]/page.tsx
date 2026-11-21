@@ -4,12 +4,9 @@ import { BackLink } from "@/components/platform/back-link";
 import { Card } from "@/components/platform/card";
 import { Selo } from "@/components/platform/selo";
 import { formatDate } from "@/lib/format";
-import { disputas, estadosConta, getPesquisador, nomeOrganizacao, pagamentos, pesquisadores } from "@/lib/exemplo";
+import { listarDisputas, listarPagamentos, obterPesquisador } from "@/lib/admin-api";
+import { estadosConta, nomeOrganizacao } from "@/lib/exemplo";
 import Acoes from "./acoes";
-
-export function generateStaticParams() {
-  return pesquisadores.map((p) => ({ handle: p.handle }));
-}
 
 export const metadata: Metadata = { title: "Pesquisador" };
 
@@ -21,10 +18,12 @@ export default function PesquisadorPage({ params }: PageProps<"/pesquisadores/[h
 
 async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "params">) {
   const { handle } = await params;
-  const p = getPesquisador(handle);
-  if (!p) notFound();
-  const minhasDisputas = disputas.filter((d) => d.pesquisador === p.handle);
-  const meusPagamentos = pagamentos.filter((x) => x.pesquisador === p.handle);
+  const [dados, disputas, pagamentos] = await Promise.all([obterPesquisador(handle), listarDisputas(), listarPagamentos()]);
+  if (!dados) notFound();
+  const { pesquisador: p, documentoNumero, documentoNome } = dados;
+  // A API junta pelo nome: duas pessoas com o mesmo nome veriam as disputas e os pagamentos uma da outra.
+  const minhasDisputas = disputas.filter((d) => d.pesquisador === p.nome);
+  const meusPagamentos = pagamentos.filter((x) => x.pesquisador === p.nome);
 
   return (
     <div className="space-y-4">
@@ -33,20 +32,18 @@ async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "
       <section aria-labelledby="pesq-nome" className="rounded-2xl border border-line bg-white p-5 shadow-[0_1px_2px_rgba(26,22,37,0.06)] md:p-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <h2 id="pesq-nome" className="text-2xl font-bold md:text-3xl">
-            {p.handle}
+            {p.nome}
           </h2>
           <Selo info={estadosConta[p.estado]} />
         </div>
         <p className="mt-1 text-muted-foreground">
-          {p.nivel} · {p.pais} · na plataforma desde {formatDate(p.desde)}
+          Na plataforma desde {formatDate(p.desde)}
         </p>
         {p.motivo && <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Motivo registado: {p.motivo}</p>}
         <dl className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-5 sm:grid-cols-4">
           {[
-            { r: "Pontos", v: String(p.pontos) },
             { r: "Relatórios", v: String(p.relatorios) },
-            { r: "Válidos", v: String(p.validos) },
-            { r: "Avisos de conduta", v: String(p.avisos) },
+            { r: "Estado", v: estadosConta[p.estado].label },
           ].map((d) => (
             <div key={d.r}>
               <dt className="text-sm text-muted-foreground">{d.r}</dt>
@@ -71,8 +68,16 @@ async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "
                       <dt className="text-sm text-muted-foreground">Enviado</dt>
                       <dd className="font-semibold">{formatDate(p.documento.enviadoEm)}</dd>
                     </div>
+                    <div>
+                      <dt className="text-sm text-muted-foreground">Nome no documento</dt>
+                      <dd className="font-semibold">{documentoNome}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-muted-foreground">Número</dt>
+                      <dd className="font-mono font-semibold">{documentoNumero}</dd>
+                    </div>
                   </dl>
-                  <p className="mt-4 text-sm text-muted-foreground">A fotografia do documento só se abre com um motivo, e cada abertura fica no registo de auditoria. Depois de verificar, o documento é apagado.</p>
+                  <p className="mt-4 text-sm text-muted-foreground">O número do documento só aparece a quem decide, e cada abertura fica no registo de auditoria. A fotografia ainda não é guardada.</p>
                 </>
               ) : (
                 <p className="text-muted-foreground">O pesquisador ainda não enviou nenhum documento.</p>
@@ -89,7 +94,7 @@ async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "
                   <li key={d.id} className="px-5 py-3.5">
                     <p className="font-medium">{d.titulo}</p>
                     <p className="text-sm text-muted-foreground">
-                      {d.id} · {nomeOrganizacao(d.organizacaoId)} · {d.motivo}
+                      {d.codigo ?? d.id} · {d.organizacaoNome ?? nomeOrganizacao(d.organizacaoId)} · {d.motivo}
                     </p>
                   </li>
                 ))}
@@ -105,7 +110,7 @@ async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "
                 {meusPagamentos.map((x) => (
                   <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3.5">
                     <p>
-                      <span className="font-medium">{x.relatorioId}</span> <span className="text-muted-foreground">· {nomeOrganizacao(x.organizacaoId)} · {formatDate(x.data)}</span>
+                      <span className="font-medium">{x.relatorioId}</span> <span className="text-muted-foreground">· {x.organizacaoNome ?? nomeOrganizacao(x.organizacaoId)} · {formatDate(x.data)}</span>
                     </p>
                     <p className="font-semibold tabular-nums">{x.valor.toLocaleString("pt-PT")} MZN</p>
                   </li>
@@ -117,7 +122,7 @@ async function Conteudo({ params }: Pick<PageProps<"/pesquisadores/[handle]">, "
 
         <aside className="xl:sticky xl:top-24">
           <Card title="Ações" headingId="acoes-titulo">
-            <Acoes handle={p.handle} estado={p.estado} />
+            <Acoes handle={p.handle} estado={p.estado} temDocumento={!!p.documento} />
           </Card>
           <p className="mt-3 text-sm text-muted-foreground">Dados pessoais, como o e-mail e os números de pagamento, não aparecem aqui. Só o suporte, com um pedido registado, os pode consultar.</p>
         </aside>

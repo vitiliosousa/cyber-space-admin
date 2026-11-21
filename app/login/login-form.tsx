@@ -11,7 +11,8 @@ function Passos({ aoVoltar }: { aoVoltar: () => void }) {
   const [state, formAction, pending] = useActionState(iniciarSessao, inicial);
   const formRef = useRef<HTMLFormElement>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
-  const codigo = state.passo === "codigo";
+  const configurar = state.passo === "configurar";
+  const codigo = state.passo === "codigo" || configurar;
 
   // Depois de submeter, o botão fica desativado e o foco perde-se: levamo-lo ao primeiro erro ou ao novo campo.
   useEffect(() => {
@@ -23,7 +24,8 @@ function Passos({ aoVoltar }: { aoVoltar: () => void }) {
 
   return (
     <form ref={formRef} action={formAction} noValidate className="space-y-3">
-      <input type="hidden" name="passo" value={codigo ? "codigo" : "credenciais"} />
+      <input type="hidden" name="passo" value={configurar ? "configurar" : codigo ? "codigo" : "credenciais"} />
+      {configurar && <input type="hidden" name="segredo" value={state.segredo ?? ""} />}
       {/* Só no segundo passo: no primeiro, o campo visível já se chama "email". */}
       {codigo && <input type="hidden" name="email" value={state.email ?? ""} />}
       <FormAlert>{state.message}</FormAlert>
@@ -31,11 +33,28 @@ function Passos({ aoVoltar }: { aoVoltar: () => void }) {
       {codigo ? (
         <>
           <div>
-            <h1 className="text-3xl font-bold md:text-4xl">Confirme a sua identidade</h1>
+            <h1 className="text-3xl font-bold md:text-4xl">{configurar ? "Ative os dois passos" : "Confirme a sua identidade"}</h1>
             <p className="mt-2 text-lg text-muted-foreground">
-              Escreva o código de 6 dígitos da aplicação de autenticação de <span className="font-medium text-ink">{state.email}</span>.
+              {configurar ? (
+                <>É o seu primeiro acesso. Leia o código QR com uma aplicação de autenticação e escreva o código de 6 dígitos que ela mostra.</>
+              ) : (
+                <>
+                  Escreva o código de 6 dígitos da aplicação de autenticação de <span className="font-medium text-ink">{state.email}</span>.
+                </>
+              )}
             </p>
           </div>
+          {configurar && state.qr && (
+            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-line p-4">
+              {/* eslint-disable-next-line @next/next/no-img-element -- o QR é um data URL gerado no servidor */}
+              <img src={state.qr} alt="Código QR para a aplicação de autenticação" width={160} height={160} className="size-40 rounded-xl" />
+              <div className="min-w-0 text-sm">
+                <p className="font-medium">Não consegue ler o QR?</p>
+                <p className="text-muted-foreground">Escreva este segredo na aplicação:</p>
+                <p className="mt-1 break-all font-mono text-ink">{state.segredo}</p>
+              </div>
+            </div>
+          )}
           <div className="pt-4">
             <TextField
               id="codigo"

@@ -178,13 +178,13 @@ export function TextAreaField({ id, label, error, hint, className, ...textarea }
   );
 }
 
-/** Mensagem de erro do formulário inteiro (anunciada por leitores de ecrã). */
-export function FormAlert({ children }: { children?: ReactNode }) {
+/** Mensagem do formulário inteiro (anunciada por leitores de ecrã). Com `sucesso`, confirma que correu bem. */
+export function FormAlert({ children, sucesso }: { children?: ReactNode; sucesso?: boolean }) {
   if (!children) return null;
   return (
     <p
-      role="alert"
-      className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
+      role={sucesso ? "status" : "alert"}
+      className={sucesso ? "rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900" : "rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"}
     >
       {children}
     </p>

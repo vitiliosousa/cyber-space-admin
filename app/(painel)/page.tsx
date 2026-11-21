@@ -7,11 +7,27 @@ import { BarList } from "@/components/platform/charts/bar-list";
 import { ColumnChart } from "@/components/platform/charts/column-chart";
 import { formatDate, formatMZN } from "@/lib/format";
 import { mesesRecentes } from "@/lib/graficos";
-import { auditoria, disputas, estadosPrograma, faturas, filaTriagem, HOJE, organizacoes, pagamentos, pedidos, pesquisadores, programas } from "@/lib/exemplo";
+import { listarAuditoria, listarDisputas, listarFaturas, listarOrganizacoes, listarPagamentos, listarPedidos, listarPesquisadores, listarProgramas, listarTriagem } from "@/lib/admin-api";
+import { estadosPrograma, hoje } from "@/lib/exemplo";
 
 export const metadata: Metadata = { title: "Visão geral" };
 
-export default function VisaoGeralPage() {
+// Lê a sessão: a rota é dinâmica e responde de imediato, sem <Suspense>.
+export const instant = false;
+
+export default async function VisaoGeralPage() {
+  // Cada pessoa da equipa só lê o que a sua função permite: o resto vem vazio.
+  const [organizacoes, programas, pesquisadores, pagamentos, faturas, pedidos, disputas, filaTriagem, auditoria] = await Promise.all([
+    listarOrganizacoes(),
+    listarProgramas(),
+    listarPesquisadores(),
+    listarPagamentos(),
+    listarFaturas(),
+    listarPedidos(),
+    listarDisputas(),
+    listarTriagem(),
+    listarAuditoria(),
+  ]);
   const orgsVerificadas = organizacoes.filter((o) => o.estado === "verificada").length;
   const programasAtivos = programas.filter((p) => p.estado === "ativo").length;
   const pesquisadoresAtivos = pesquisadores.filter((p) => p.estado === "ativo").length;
@@ -21,7 +37,7 @@ export default function VisaoGeralPage() {
   const pedidosNovos = pedidos.filter((p) => p.estado === "novo").length;
 
   const atencao = [
-    { n: programas.filter((p) => p.estado === "pendente" || p.pedidoPublicacaoEm).length, rotulo: "programas por aprovar ou abrir ao público", href: "/aprovacoes", icone: Target02Icon },
+    { n: programas.filter((p) => p.estado === "pendente").length, rotulo: "programas por aprovar", href: "/aprovacoes", icone: Target02Icon },
     { n: organizacoes.filter((o) => o.estado === "em-analise").length, rotulo: "organizações em análise", href: "/organizacoes", icone: Building03Icon },
     { n: disputas.filter((d) => d.estado !== "resolvida").length, rotulo: "disputas abertas", href: "/relatorios", icone: File02Icon },
     { n: filaTriagem.filter((t) => t.estado === "na-fila").length, rotulo: "relatórios na fila de triagem", href: "/relatorios", icone: File02Icon },
@@ -31,7 +47,7 @@ export default function VisaoGeralPage() {
     { n: pesquisadores.filter((p) => p.estado === "por-verificar").length, rotulo: "pesquisadores por verificar", href: "/pesquisadores", icone: UserIcon },
   ].filter((a) => a.n > 0);
 
-  const meses = mesesRecentes(6, HOJE);
+  const meses = mesesRecentes(6, hoje());
   const novosPorMes = meses.map((m) => ({ label: m.label, value: pesquisadores.filter((p) => p.desde.startsWith(m.chave)).length }));
 
   const porEstado = (Object.keys(estadosPrograma) as (keyof typeof estadosPrograma)[])

@@ -1,9 +1,9 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { AlternarTema } from "./alternar-tema";
 import { HeaderTitle } from "./header-title";
 import { MobileMenu } from "./mobile-menu";
 import { Sidebar } from "./sidebar";
-import { UserMenu } from "./user-menu";
+import { MembroMenu, MembroMenuAEsperar } from "./membro-menu";
 
 /** Estrutura da administração: menu lateral fixo, cabeçalho com título e conteúdo que desliza. */
 // `relative` prende os elementos de posição absoluta (como o texto só para leitores de ecrã) a este
@@ -28,7 +28,9 @@ export function PlatformShell({ children }: { children: ReactNode }) {
           </div>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <AlternarTema />
-            <UserMenu />
+            <Suspense fallback={<MembroMenuAEsperar />}>
+              <MembroMenu />
+            </Suspense>
           </div>
         </header>
 

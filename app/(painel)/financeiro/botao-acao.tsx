@@ -16,7 +16,7 @@ export function BotaoAcao({ acao, id, rotulo, nome, variante = "outline" }: { ac
         <span className="sr-only"> {nome}</span>
       </Button>
       {state.message && (
-        <p role="alert" className="max-w-52 text-right text-sm text-muted-foreground">
+        <p role={state.ok ? "status" : "alert"} className="max-w-52 text-right text-sm text-muted-foreground">
           {state.message}
         </p>
       )}
